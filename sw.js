@@ -1,5 +1,5 @@
 /* Hermanns Sprechtafel – Offline-Cache */
-const CACHE = "sprechtafel-v1";
+const CACHE = "sprechtafel-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -16,18 +16,31 @@ self.addEventListener("install", e => {
 
 self.addEventListener("activate", e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", e => {
+  const isSeite = e.request.mode === "navigate" || e.request.url.endsWith("/index.html") || e.request.url.endsWith("/");
+
+  if (isSeite){
+    /* Seite: immer die neueste Version aus dem Netz holen, nur offline aus dem Cache */
+    e.respondWith(
+      fetch(e.request).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+        return res;
+      }).catch(() => caches.match(e.request).then(hit => hit || caches.match("./index.html")))
+    );
+    return;
+  }
+
+  /* Icons/Manifest/Fonts: aus dem Cache, sonst nachladen */
   e.respondWith(
     caches.match(e.request).then(hit =>
       hit || fetch(e.request).then(res => {
-        /* Fonts etc. beim ersten Laden mit-cachen */
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
         return res;
