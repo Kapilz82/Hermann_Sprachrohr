@@ -23,3 +23,11 @@ In `index.html` ganz oben den `CONFIG`-Block bearbeiten:
 - `wort` = Text auf der Kachel
 - `satz` = was vorgelesen wird
 Datei speichern, Seite neu laden – fertig.
+
+## Falls das iPad eine alte Version zeigt
+Die App lädt bei bestehender Internetverbindung automatisch die neueste
+Version nach. Zeigt sie trotzdem noch alten Stand:
+1. Einstellungen → Safari → Erweitert → Websitedaten → nach "github.io"
+   suchen → Wischen zum Löschen → Löschen
+2. Icon vom Homescreen entfernen (antippen & halten → Entfernen)
+3. Seite frisch in Safari öffnen, erneut "Zum Home-Bildschirm" hinzufügen
