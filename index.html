@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Hermanns Sprechtafel</title>
+<!-- iPad: als Vollbild-Web-App vom Homescreen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sprechtafel">
+<meta name="theme-color" content="#14212B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- Vollbild-Web-App (iPad: Teilen → "Zum Home-Bildschirm") -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sprechtafel">
+<meta name="theme-color" content="#14212B">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14212B;          /* ruhiges Nachtblau – blendet nicht im Bett */
+    --card:#1E3240;
+    --card-active:#2A4658;
+    --text:#F5EFE4;
+    --text-dim:#9FB3BF;
+    --bubble:#F5EFE4;
+    --bubble-text:#14212B;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Atkinson Hyperlegible',system-ui,sans-serif;
+    display:flex;flex-direction:column;
+    height:100dvh;overflow:hidden;
+  }
+
+  /* ---------- Sprechblase oben ---------- */
+  header{
+    padding:14px 16px 6px;
+    display:flex;gap:12px;align-items:stretch;
+  }
+  #bubble{
+    flex:1;
+    background:var(--bubble);color:var(--bubble-text);
+    border-radius:26px;border-bottom-left-radius:6px;
+    padding:16px 20px;
+    font-size:clamp(24px,4.5vw,40px);font-weight:700;line-height:1.25;
+    min-height:76px;display:flex;align-items:center;
+    transition:transform .15s ease;
+  }
+  #bubble.speaking{transform:scale(1.02)}
+  #bubble.empty{color:#8a8378;font-weight:400}
+  #repeat{
+    width:88px;min-height:76px;
+    border:none;border-radius:26px;
+    background:var(--card);color:var(--text);
+    font-size:40px;cursor:pointer;
+  }
+  #repeat:active{background:var(--card-active)}
+
+  /* ---------- Wortkacheln ---------- */
+  main{
+    flex:1;overflow-y:auto;
+    padding:10px 16px 6px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:14px;align-content:start;
+  }
+  .tile{
+    border:none;cursor:pointer;
+    background:var(--card);color:var(--text);
+    border-radius:22px;
+    border-bottom:8px solid var(--cat, #888);
+    min-height:150px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    padding:12px 8px;
+    transition:transform .08s ease,background .08s ease;
+  }
+  .tile:active,.tile.flash{transform:scale(.94);background:var(--card-active)}
+  @media (hover:hover){
+    .tile:hover,#repeat:hover,nav button:hover{background:var(--card-active);cursor:pointer}
+    nav button.on:hover{background:var(--cat)}
+  }
+  .tile:focus-visible,#repeat:focus-visible,nav button:focus-visible{
+    outline:4px solid #F5C86E;outline-offset:3px;
+  }
+  /* Maus & Tastatur */
+  @media (hover:hover){
+    .tile:hover,#repeat:hover,nav button:hover{background:var(--card-active)}
+    nav button.on:hover{background:var(--cat)}
+  }
+  .tile:focus-visible,#repeat:focus-visible,nav button:focus-visible{
+    outline:5px solid #F5C86E;outline-offset:3px;
+  }
+  .tile .sym{font-size:60px;line-height:1}
+  .tile .word{font-size:26px;font-weight:700;text-align:center}
+
+  /* ---------- Kategorien unten ---------- */
+  nav{
+    display:flex;gap:10px;
+    padding:10px 16px calc(14px + env(safe-area-inset-bottom));
+  }
+  nav button{
+    flex:1;min-height:84px;
+    border:none;border-radius:20px;cursor:pointer;
+    background:var(--card);color:var(--text-dim);
+    font-family:inherit;font-size:19px;font-weight:700;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  }
+  nav button .sym{font-size:34px}
+  nav button.on{
+    background:var(--cat);color:#14212B;
+  }
+  #voicehint{
+    display:none;background:#F5C86E;color:#14212B;
+    font-size:18px;font-weight:700;text-align:center;
+    padding:10px 16px;
+  }
+  #voicehint.show{display:block}
+</style>
+</head>
+<body>
+
+<div id="voicehint">⚠️ Keine deutsche Stimme gefunden – bitte in den Geräte-Einstellungen eine deutsche Sprachausgabe installieren.</div>
+
+<header>
+  <div id="bubble" class="empty">Tippe auf ein Wort …</div>
+  <button id="repeat" title="Nochmal sagen">🔁</button>
+</header>
+
+<main id="grid"></main>
+<nav id="tabs"></nav>
+
+<script>
+/* ================================================================
+   HIER BEARBEITEN – genau wie bei der BIT-Seite:
+   Nur diesen CONFIG-Block ändern, nichts darunter anfassen.
+   symbol = Emoji auf der Kachel
+   wort   = Text auf der Kachel
+   satz   = Was vorgelesen wird (kann länger sein als das Wort)
+   ================================================================ */
+const CONFIG = {
+  stimme: { sprache: "de-DE", tempo: 0.9, tonhoehe: 1.0 },
+  kategorien: [
+    {
+      name: "Menschen", symbol: "👪", farbe: "#F2A5B8",
+      woerter: [
+        { symbol: "👵", wort: "Wilhelmine", satz: "Wilhelmine, komm bitte zu mir." },
+        { symbol: "👨", wort: "Uwe",        satz: "Ich möchte mit Uwe sprechen." },
+        { symbol: "🧑", wort: "Alex",       satz: "Ich möchte mit Alex sprechen." },
+        { symbol: "📞", wort: "Anrufen",    satz: "Bitte ruf jemanden für mich an." },
+        { symbol: "🫂", wort: "Besuch",     satz: "Ich hätte gerne Besuch." },
+        { symbol: "🤫", wort: "Allein",     satz: "Ich möchte gerade allein sein." }
+      ]
+    },
+    {
+      name: "Brauche", symbol: "🙋", farbe: "#7FD1C0",
+      woerter: [
+        { symbol: "💧", wort: "Durst",     satz: "Ich habe Durst. Bitte bring mir etwas zu trinken." },
+        { symbol: "🍽️", wort: "Hunger",    satz: "Ich habe Hunger." },
+        { symbol: "🚻", wort: "Toilette",  satz: "Ich muss auf die Toilette." },
+        { symbol: "⚡", wort: "Schmerzen", satz: "Ich habe Schmerzen." },
+        { symbol: "🔄", wort: "Umlagern",  satz: "Bitte hilf mir, meine Lage zu ändern." },
+        { symbol: "💊", wort: "Medizin",   satz: "Ich brauche meine Medikamente." },
+        { symbol: "🥶", wort: "Kalt",      satz: "Mir ist kalt. Bitte gib mir eine Decke." },
+        { symbol: "🥵", wort: "Warm",      satz: "Mir ist zu warm." }
+      ]
+    },
+    {
+      name: "Antworten", symbol: "💬", farbe: "#F5C86E",
+      woerter: [
+        { symbol: "✅", wort: "Ja",      satz: "Ja." },
+        { symbol: "❌", wort: "Nein",    satz: "Nein." },
+        { symbol: "🙏", wort: "Danke",   satz: "Danke schön." },
+        { symbol: "🙂", wort: "Gut",     satz: "Mir geht es gut." },
+        { symbol: "🙁", wort: "Schlecht",satz: "Mir geht es nicht gut." },
+        { symbol: "⏰", wort: "Später",  satz: "Später bitte." },
+        { symbol: "❓", wort: "Weiß nicht", satz: "Ich weiß es nicht." },
+        { symbol: "❤️", wort: "Hab dich lieb", satz: "Ich hab dich lieb." }
+      ]
+    },
+    {
+      name: "Zimmer", symbol: "🛏️", farbe: "#9FB6F2",
+      woerter: [
+        { symbol: "📺", wort: "Fernseher", satz: "Bitte mach den Fernseher an." },
+        { symbol: "💡", wort: "Licht an",  satz: "Bitte mach das Licht an." },
+        { symbol: "🌙", wort: "Licht aus", satz: "Bitte mach das Licht aus." },
+        { symbol: "👓", wort: "Brille",    satz: "Bitte gib mir meine Brille." },
+        { symbol: "🪟", wort: "Fenster",   satz: "Bitte öffne das Fenster." },
+        { symbol: "🔇", wort: "Leiser",    satz: "Bitte mach es leiser." }
+      ]
+    }
+  ]
+};
+/* ============== Ab hier nichts mehr ändern ============== */
+
+const grid = document.getElementById("grid");
+const tabs = document.getElementById("tabs");
+const bubble = document.getElementById("bubble");
+let lastSentence = "";
+let deVoice = null;
+
+function pickVoice(){
+  const v = speechSynthesis.getVoices();
+  deVoice = v.find(x => x.lang === CONFIG.stimme.sprache)
+         || v.find(x => x.lang.startsWith("de"))
+         || null;
+  if (v.length > 0){
+    document.getElementById("voicehint").classList.toggle("show", !deVoice);
+  }
+}
+speechSynthesis.onvoiceschanged = pickVoice;
+pickVoice();
+setTimeout(pickVoice, 1500); /* Safari lädt Stimmen manchmal verzögert */
+
+function speak(text){
+  lastSentence = text;
+  bubble.textContent = text;
+  bubble.classList.remove("empty");
+  bubble.classList.add("speaking");
+  if (navigator.vibrate) navigator.vibrate(30);
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = CONFIG.stimme.sprache;
+  u.rate = CONFIG.stimme.tempo;
+  u.pitch = CONFIG.stimme.tonhoehe;
+  if (deVoice) u.voice = deVoice;
+  u.onend = () => bubble.classList.remove("speaking");
+  speechSynthesis.speak(u);
+}
+
+document.getElementById("repeat").addEventListener("click", () => {
+  if (lastSentence) speak(lastSentence);
+});
+
+function showCategory(i){
+  [...tabs.children].forEach((b,j) => b.classList.toggle("on", i===j));
+  grid.innerHTML = "";
+  CONFIG.kategorien[i].woerter.forEach(w => {
+    const b = document.createElement("button");
+    b.className = "tile";
+    b.style.setProperty("--cat", CONFIG.kategorien[i].farbe);
+    b.innerHTML = `<span class="sym">${w.symbol}</span><span class="word">${w.wort}</span>`;
+    b.addEventListener("click", () => {
+      b.classList.add("flash");
+      setTimeout(() => b.classList.remove("flash"), 150);
+      speak(w.satz);
+    });
+    grid.appendChild(b);
+  });
+}
+
+CONFIG.kategorien.forEach((k,i) => {
+  const b = document.createElement("button");
+  b.style.setProperty("--cat", k.farbe);
+  b.innerHTML = `<span class="sym">${k.symbol}</span>${k.name}`;
+  b.addEventListener("click", () => showCategory(i));
+  tabs.appendChild(b);
+});
+showCategory(0);
+
+/* Warnung, falls keine deutsche Stimme vorhanden (nach dem Laden der Stimmen) */
+setTimeout(() => {
+  pickVoice();
+  if (!deVoice && speechSynthesis.getVoices().length > 0){
+    const warn = document.createElement("div");
+    warn.style.cssText = "position:fixed;top:0;left:0;right:0;background:#F5C86E;color:#14212B;font-weight:700;font-size:18px;padding:10px 16px;text-align:center;z-index:9";
+    warn.textContent = "Keine deutsche Stimme gefunden – bitte in den Geräte-Einstellungen eine deutsche Sprachausgabe installieren.";
+    warn.onclick = () => warn.remove();
+    document.body.appendChild(warn);
+  }
+}, 2500);
+
+/* Offline-Fähigkeit (nur über https / GitHub Pages aktiv, nicht bei file://) */
+if ("serviceWorker" in navigator && location.protocol === "https:"){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+
+/* Bildschirm anlassen, solange die Seite offen ist */
+/* Offline-Betrieb (greift nur über https, z.B. GitHub Pages) */
+if ("serviceWorker" in navigator && location.protocol === "https:"){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+
+if ("wakeLock" in navigator){
+  const lock = () => navigator.wakeLock.request("screen").catch(()=>{});
+  document.addEventListener("click", lock, { once:true });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") lock();
+  });
+}
+</script>
+</body>
+</html>
